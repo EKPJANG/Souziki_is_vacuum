@@ -9,7 +9,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('home') }}">掲示板</a>
+            <a class="navbar-brand fw-bold" href="{{ route('home') }}">掲示板トップ</a>
             <div>
                 <a class="nav-link d-inline" href="{{ route('categories.index') }}">カテゴリー一覧</a>
                 @auth
