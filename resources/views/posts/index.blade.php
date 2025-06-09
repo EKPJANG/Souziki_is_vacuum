@@ -32,7 +32,13 @@
                     <p class="card-text">{{ Str::limit($post->content, 100) }}</p>
                     <div class="text-muted mb-2">
                         投稿者: {{ $post->user->name ?? '不明' }} |
-                        カテゴリー: <a href="{{ route('categories.show', $post->category) }}">{{ $post->category->name ?? '未分類' }}</a> |
+                        カテゴリー: 
+                        @if($post->category)
+                            <a href="{{ route('categories.show', $post->category) }}">{{ $post->category->name }}</a>
+                        @else
+                            未分類
+                        @endif
+                        |
                         投稿日: {{ $post->created_at->format('Y/m/d H:i') }}
                     </div>
                     <div>
