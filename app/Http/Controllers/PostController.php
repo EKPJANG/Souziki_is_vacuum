@@ -5,15 +5,23 @@ namespace App\Http\Controllers;
 // use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
+use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth')->except(['index', 'show']);
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $posts = Post::all();
+        $posts = Post::with(['user', 'category', 'likes', 'comments'])
+            ->latest()
+            ->paginate(10);
         return view('posts.index', compact('posts'));
     }
 
@@ -32,56 +40,74 @@ class PostController extends Controller
     {
         $request->validate([
             'title' => 'required|max:255',
-            'content' => 'required'
+            'content' => 'required',
+            'category_id' => 'nullable|exists:categories,id'
         ]);
-        $post = Post::create($request->all());
 
-        return redirect()->route('posts.show', ['post' => $post->id ]);
-        // return redirect()->route('posts.index');
+        $post = new Post();
+        $post->title = $request->title;
+        $post->content = $request->content;
+        $post->user_id = Auth::id();
+        $post->category_id = $request->category_id;
+        $post->save();
+
+        return redirect()->route('posts.show', $post)->with('success', '投稿を作成しました。');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Post $post)
     {
-        $post = Post::findOrfail($id);
+        $post->load(['user', 'category', 'comments.user', 'likes']);
         return view('posts.show', compact('post'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Post $post)
     {
-        $post = Post::findOrfail($id);
+        if (Auth::id() !== $post->user_id) {
+            return redirect()->route('posts.show', $post)->with('error', '編集権限がありません。');
+        }
         return view('posts.edit', compact('post'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Post $post)
     {
-         $request->validate([
+        if (Auth::id() !== $post->user_id) {
+            return redirect()->route('posts.show', $post)->with('error', '編集権限がありません。');
+        }
+
+        $request->validate([
             'title' => 'required|max:255',
-            'content' => 'required'
+            'content' => 'required',
+            'category_id' => 'nullable|exists:categories,id'
         ]);
-         $post = Post::FindOrfail($id);
-         $post->update([
+
+        $post->update([
             'title' => $request->title,
-            'content' =>$request->content
-         ]);
-         return redirect()->route('posts.show', ['post' => $post->id ]);
+            'content' => $request->content,
+            'category_id' => $request->category_id
+        ]);
+
+        return redirect()->route('posts.show', $post)->with('success', '投稿を更新しました。');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Post $post)
     {
-        $post = Post::FindOrfail($id);
+        if (Auth::id() !== $post->user_id) {
+            return redirect()->route('posts.show', $post)->with('error', '削除権限がありません。');
+        }
+
         $post->delete();
-        return redirect()->route('posts.index');
+        return redirect()->route('posts.index')->with('success', '投稿を削除しました。');
     }
 }
